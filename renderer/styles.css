@@ -403,6 +403,10 @@ button, input, textarea, select { -webkit-app-region: no-drag; }
   background: var(--success-subtle);
   color: var(--success);
 }
+.badge.cached {
+  background: var(--primary-subtle);
+  color: var(--primary);
+}
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }

@@ -9,6 +9,7 @@ interface OCRResult {
   modelUsed: string;
   corrected?: boolean;
   correcting?: boolean;
+  fromCache?: boolean;
 }
 
 interface Props {
@@ -66,6 +67,7 @@ export default function ResultPanel({ lang, T, titlebar, statusBar, result, load
           {result.containsHandwriting && <span className="badge">{T('result.handwriting')}</span>}
           {result.correcting && <span className="badge correcting">{T('result.correcting')}</span>}
           {result.corrected && <span className="badge corrected">{T('result.corrected')}</span>}
+          {result.fromCache && <span className="badge cached">{T('result.cached')}</span>}
         </div>
 
         <div className="result-actions">

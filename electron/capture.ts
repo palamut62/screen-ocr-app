@@ -71,34 +71,43 @@ export async function captureRegion(region: {
 }
 
 export async function optimizeForOCR(imageBuffer: Buffer): Promise<string> {
-  // Resize to max 1600px (good enough for OCR, much smaller payload)
-  // Convert to JPEG quality 85 — ~3-5x smaller than PNG
-  const optimized = await sharp(imageBuffer)
-    .resize({
+  const metadata = await sharp(imageBuffer).metadata();
+  const w = metadata.width || 0;
+  const h = metadata.height || 0;
+
+  let pipeline = sharp(imageBuffer);
+
+  // Step 1: Grayscale — removes color noise, reduces payload
+  pipeline = pipeline.grayscale();
+
+  // Step 2: Normalize contrast — makes faint text more readable
+  pipeline = pipeline.normalize();
+
+  // Step 3: Sharpen — improves edge clarity for text
+  pipeline = pipeline.sharpen({ sigma: 1.2 });
+
+  // Step 4: Upscale small images so text isn't too tiny for the model
+  // If the image is very small (< 800px on either side), upscale to 1600px
+  if (w < 800 || h < 800) {
+    pipeline = pipeline.resize({
       width: 1600,
       height: 1600,
       fit: 'inside',
-      withoutEnlargement: true,
-    })
-    .jpeg({ quality: 85 })
-    .toBuffer();
-
-  return optimized.toString('base64');
-}
-
-export async function preprocessImage(imageBuffer: Buffer): Promise<Buffer> {
-  const processed = await sharp(imageBuffer)
-    .grayscale()
-    .normalize()
-    .sharpen({ sigma: 1.5 })
-    .resize({
+      withoutEnlargement: false,
+    });
+  } else {
+    // Step 5: Downscale large images to save tokens
+    pipeline = pipeline.resize({
       width: 2048,
       height: 2048,
       fit: 'inside',
-      withoutEnlargement: false,
-    })
-    .png()
-    .toBuffer();
+      withoutEnlargement: true,
+    });
+  }
 
-  return processed;
+  // Step 6: Output as high-quality JPEG (good balance of size vs quality)
+  const optimized = await pipeline.jpeg({ quality: 90 }).toBuffer();
+
+  console.log(`[OCR Preprocess] ${w}x${h} → ${optimized.length} bytes`);
+  return optimized.toString('base64');
 }

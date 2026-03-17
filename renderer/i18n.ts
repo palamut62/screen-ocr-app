@@ -6,7 +6,7 @@ const translations = {
   'app.hotkey': { tr: 'Ctrl+Shift+X', en: 'Ctrl+Shift+X' },
 
   // Main view
-  'main.selectArea': { tr: 'Alan Sec', en: 'Select Area' },
+  'main.selectArea': { tr: 'Metin Sec', en: 'Select Text' },
   'main.snipEdit': { tr: 'Kes & Duzenle', en: 'Snip & Edit' },
   'main.scanClipboard': { tr: 'Panodan Tara', en: 'Scan Clipboard' },
   'main.lastResult': { tr: 'Son Sonuc', en: 'Last Result' },
@@ -29,6 +29,7 @@ const translations = {
   'result.correcting': { tr: 'Duzeltiliyor...', en: 'Correcting...' },
   'result.corrected': { tr: 'Duzeltildi', en: 'Corrected' },
   'result.extracting': { tr: 'Metin cikartiliyor...', en: 'Extracting text...' },
+  'result.cached': { tr: 'Onbellekten', en: 'Cached' },
 
   // Settings
   'settings.title': { tr: 'Ayarlar', en: 'Settings' },

@@ -4,41 +4,12 @@ import Settings from './settings';
 import Editor from './editor';
 import { type Lang, type TranslationKey, t, getStoredLang, setStoredLang } from './i18n';
 import { type Theme, getStoredTheme, setStoredTheme, applyTheme } from './theme';
+import { performOCR, correctText, type OCRResult } from './ocr-engine';
 
 type View = 'main' | 'result' | 'settings' | 'editor';
 
-interface OCRResult {
-  fullText: string;
-  language: string;
-  confidence: number;
-  containsHandwriting: boolean;
-  modelUsed: string;
-  corrected?: boolean;
-  correcting?: boolean;
-}
-
 export interface OCRModel { id: string; name: string; free: boolean; }
 export interface TextModel { id: string; name: string; free: boolean; }
-
-async function correctText(key: string, model: string, rawText: string): Promise<string | null> {
-  try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: `You are an OCR text correction engine. Fix ONLY character-level OCR errors (wrong letters, missing/extra characters, broken Unicode). Do NOT change meaning, formatting, line breaks, or translate. If the text looks correct, return it unchanged. Return ONLY the corrected text, nothing else.` },
-          { role: 'user', content: rawText },
-        ],
-        max_tokens: 4096,
-        temperature: 0,
-      }),
-    });
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() || null;
-  } catch { return null; }
-}
 
 export default function App() {
   const [lang, setLangState] = useState<Lang>(getStoredLang);
@@ -78,40 +49,13 @@ export default function App() {
     setView('result');
 
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: `You are an OCR engine specialized in multilingual screen text extraction.\nExtract every visible text exactly as written.\nRules: support printed and handwritten text, preserve line breaks, do not summarize, do not translate, keep punctuation exactly.\nReturn ONLY valid JSON: {"fullText":"...","language":"auto","confidence":0.87,"containsHandwriting":false}` },
-            { role: 'user', content: [
-              { type: 'text', text: 'Extract all visible text from this image. Return ONLY JSON.' },
-              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
-            ] },
-          ],
-          max_tokens: 4096,
-          temperature: 0,
-        }),
-      });
+      // Use the OCR engine with improved prompts, retry, and cache
+      const ocrResult = await performOCR(key, model, imageBase64);
+      ocrResult.correcting = corrEnabled && !!corrModel;
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '';
-      let jsonStr = content;
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) jsonStr = jsonMatch[1];
-
-      const cachedModels: OCRModel[] = JSON.parse(localStorage.getItem('ocr-models-cache') || '[]');
-      const modelInfo = cachedModels.find(m => m.id === model);
-      const parsed = JSON.parse(jsonStr.trim());
-      const ocrResult: OCRResult = {
-        fullText: parsed.fullText || content,
-        language: parsed.language || 'unknown',
-        confidence: parsed.confidence || 0,
-        containsHandwriting: parsed.containsHandwriting || false,
-        modelUsed: modelInfo?.name || model,
-        correcting: corrEnabled && !!corrModel,
-      };
+      if (ocrResult.fromCache) {
+        console.log('[OCR] Result served from cache');
+      }
 
       setResult(ocrResult);
       setLoading(false);
@@ -119,6 +63,7 @@ export default function App() {
       const autoCopy = localStorage.getItem('auto-copy') !== 'false';
       if (autoCopy && ocrResult.fullText) window.electronAPI?.copyToClipboard(ocrResult.fullText);
 
+      // Text correction pass
       if (corrEnabled && corrModel && ocrResult.fullText && ocrResult.fullText.length > 2) {
         const corrected = await correctText(key, corrModel, ocrResult.fullText);
         if (corrected && corrected !== ocrResult.fullText) {
