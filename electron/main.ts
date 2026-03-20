@@ -1,7 +1,7 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, clipboard, screen, Tray, Menu, nativeImage, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { captureScreen, captureRegion, optimizeForOCR } from './capture';
+import { captureScreen, captureRegion, optimizeForOCR, createBlurredCapture } from './capture';
 import { createOverlayWindow } from './overlay-window';
 
 // Fix Windows fullscreen occlusion detection
@@ -130,7 +130,13 @@ ipcMain.handle('region-selected', async (_event, region: { x: number; y: number;
     overlayWindow = null;
     mainWindow?.show();
 
-    if (snipMode) {
+    if (blurMode) {
+      const blurredBuffer = await createBlurredCapture(scaledRegion);
+      blurMode = false;
+      const base64 = blurredBuffer.toString('base64');
+      mainWindow?.webContents.send('blur-preview', base64);
+      return base64;
+    } else if (snipMode) {
       // Send raw PNG for editor (no compression)
       const base64 = imageBuffer.toString('base64');
       console.log('[SNIP] base64 length:', base64.length);
@@ -157,7 +163,13 @@ ipcMain.handle('cancel-capture', () => {
   overlayWindow?.close();
   overlayWindow = null;
   snipMode = false;
+  blurMode = false;
   mainWindow?.show();
+});
+
+ipcMain.handle('start-blur-capture', () => {
+  blurMode = true;
+  startCapture();
 });
 
 ipcMain.handle('copy-to-clipboard', (_event, text: string) => {
@@ -182,6 +194,7 @@ ipcMain.handle('close-window', () => {
 
 // Snip capture — same overlay, but sends raw image to editor instead of OCR
 let snipMode = false;
+let blurMode = false;
 let pendingSnipBase64: string | null = null;
 
 ipcMain.handle('resize-window', (_event, width: number, height: number) => {
@@ -220,6 +233,17 @@ ipcMain.handle('copy-image', (_event, base64: string) => {
   const buf = Buffer.from(base64, 'base64');
   const img = nativeImage.createFromBuffer(buf);
   clipboard.writeImage(img);
+});
+
+ipcMain.handle('save-blur', async (_event, base64: string) => {
+  const result = await dialog.showSaveDialog(mainWindow!, {
+    defaultPath: `blur-capture-${Date.now()}.png`,
+    filters: [{ name: 'PNG Image', extensions: ['png'] }],
+  });
+  if (result.canceled || !result.filePath) return null;
+  const buf = Buffer.from(base64, 'base64');
+  fs.writeFileSync(result.filePath, buf);
+  return result.filePath;
 });
 
 ipcMain.handle('save-snip', async (_event, base64: string) => {

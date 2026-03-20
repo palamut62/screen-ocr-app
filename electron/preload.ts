@@ -25,4 +25,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPendingSnip: () => ipcRenderer.invoke('get-pending-snip'),
   copyImage: (base64: string) => ipcRenderer.invoke('copy-image', base64),
   saveSnip: (base64: string) => ipcRenderer.invoke('save-snip', base64),
+  startBlurCapture: () => ipcRenderer.invoke('start-blur-capture'),
+  onBlurPreview: (callback: (base64: string) => void) => {
+    ipcRenderer.removeAllListeners('blur-preview');
+    ipcRenderer.on('blur-preview', (_event, base64) => callback(base64));
+  },
+  saveBlur: (base64: string) => ipcRenderer.invoke('save-blur', base64),
 });

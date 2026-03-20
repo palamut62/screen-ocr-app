@@ -70,6 +70,52 @@ export async function captureRegion(region: {
   return cropped;
 }
 
+export async function createBlurredCapture(region: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): Promise<Buffer> {
+  if (!lastScreenshotPath || !fs.existsSync(lastScreenshotPath)) {
+    throw new Error('No screenshot available. Call captureScreen first.');
+  }
+
+  const metadata = await sharp(lastScreenshotPath).metadata();
+  const imgW = metadata.width!;
+  const imgH = metadata.height!;
+
+  // Create blurred full image
+  const blurred = await sharp(lastScreenshotPath)
+    .blur(20)
+    .png()
+    .toBuffer();
+
+  // Extract the sharp (unblurred) region from original
+  const sharpRegion = await sharp(lastScreenshotPath)
+    .extract({
+      left: region.x,
+      top: region.y,
+      width: region.width,
+      height: region.height,
+    })
+    .png()
+    .toBuffer();
+
+  // Composite: blurred background + sharp region on top
+  const result = await sharp(blurred)
+    .composite([
+      {
+        input: sharpRegion,
+        left: region.x,
+        top: region.y,
+      },
+    ])
+    .png()
+    .toBuffer();
+
+  return result;
+}
+
 export async function optimizeForOCR(imageBuffer: Buffer): Promise<string> {
   const metadata = await sharp(imageBuffer).metadata();
   const w = metadata.width || 0;

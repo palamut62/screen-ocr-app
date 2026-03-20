@@ -16,6 +16,9 @@ interface ElectronAPI {
   getPendingSnip: () => Promise<string | null>;
   copyImage: (base64: string) => Promise<void>;
   saveSnip: (base64: string) => Promise<string | null>;
+  startBlurCapture: () => Promise<void>;
+  onBlurPreview: (callback: (base64: string) => void) => void;
+  saveBlur: (base64: string) => Promise<string | null>;
 }
 
 interface Window {

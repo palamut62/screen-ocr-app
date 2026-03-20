@@ -6,7 +6,7 @@ import { type Lang, type TranslationKey, t, getStoredLang, setStoredLang } from 
 import { type Theme, getStoredTheme, setStoredTheme, applyTheme } from './theme';
 import { performOCR, correctText, type OCRResult } from './ocr-engine';
 
-type View = 'main' | 'result' | 'settings' | 'editor';
+type View = 'main' | 'result' | 'settings' | 'editor' | 'blur-preview';
 
 export interface OCRModel { id: string; name: string; free: boolean; }
 export interface TextModel { id: string; name: string; free: boolean; }
@@ -26,6 +26,8 @@ export default function App() {
   const [textModels, setTextModels] = useState<TextModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [snipImage, setSnipImage] = useState<string | null>(null);
+  const [blurImage, setBlurImage] = useState<string | null>(null);
+  const [blurSaved, setBlurSaved] = useState(false);
 
   const runOCRRef = useRef<(base64: string) => Promise<void>>();
 
@@ -90,6 +92,17 @@ export default function App() {
     window.electronAPI?.onSnipComplete((base64: string) => {
       setSnipImage(base64);
       setView('editor');
+    });
+    window.electronAPI?.onBlurPreview(async (base64: string) => {
+      setBlurImage(base64);
+      setBlurSaved(false);
+      const screen = await window.electronAPI?.getScreenSize();
+      if (screen) {
+        const w = Math.min(900, screen.width - 100);
+        const h = Math.min(700, screen.height - 100);
+        window.electronAPI?.resizeWindow(w, h);
+      }
+      setView('blur-preview');
     });
     const handleFocus = async () => {
       const data = await window.electronAPI?.getPendingSnip();
@@ -189,6 +202,36 @@ export default function App() {
     return <Editor imageBase64={snipImage} onClose={() => setView('main')} lang={lang} T={T} />;
   }
 
+  if (view === 'blur-preview' && blurImage) {
+    return (
+      <div className="main-container">
+        {titlebar(T('blur.title'), () => setView('main'))}
+        <div className="content" style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', maxWidth: '100%', maxHeight: 'calc(100vh - 150px)' }}>
+            <img
+              src={`data:image/png;base64,${blurImage}`}
+              style={{ display: 'block', maxWidth: '100%', maxHeight: 'calc(100vh - 150px)', objectFit: 'contain' }}
+            />
+          </div>
+        </div>
+        <div className="editor-actions">
+          <button className="btn secondary" onClick={() => { setView('main'); setBlurImage(null); window.electronAPI?.resizeWindow(400, 500); }}>
+            {T('blur.cancel')}
+          </button>
+          <button className="btn secondary" onClick={() => { setBlurImage(null); window.electronAPI?.resizeWindow(400, 500); window.electronAPI?.startBlurCapture(); }}>
+            {T('blur.retake')}
+          </button>
+          <button className="btn primary" onClick={async () => {
+            const saved = await window.electronAPI?.saveBlur(blurImage);
+            if (saved) setBlurSaved(true);
+          }}>
+            {blurSaved ? T('blur.saved') : T('blur.save')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (view === 'result') {
     return (
       <ResultPanel
@@ -216,6 +259,10 @@ export default function App() {
           <button className="btn secondary" onClick={() => window.electronAPI?.startSnipCapture()}>
             <span className="icon">&#9998;</span>
             {T('main.snipEdit')}
+          </button>
+          <button className="btn secondary" onClick={() => window.electronAPI?.startBlurCapture()}>
+            <span className="icon">&#128065;</span>
+            {T('main.blurCapture')}
           </button>
           <button className="btn secondary full" onClick={async () => {
             const img = await window.electronAPI?.getClipboardImage();
