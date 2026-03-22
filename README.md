@@ -18,8 +18,8 @@ AI-powered screen text extraction and image annotation tool for Windows.
 - **AI Text Correction** — Automatically fix OCR character errors using a secondary AI model
 - **Focus Capture** — Capture focused window content
 
-### DrawPen-Style Editor
-- **Floating Toolbar** — Pill-shaped toolbar at the bottom of the canvas (DrawPen design)
+### Image Editor
+- **Floating Toolbar** — Clean pill-shaped toolbar at the bottom of the canvas
 - **Freehand Drawing** — Smooth pen strokes with adjustable width
 - **Highlighter** — Semi-transparent marker for emphasis
 - **Shapes** — Rectangle, oval, arrow, and line tools
