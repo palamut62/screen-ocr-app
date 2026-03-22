@@ -2,19 +2,44 @@
 
 AI-powered screen text extraction and image annotation tool for Windows.
 
-![Screen OCR](screenshot.png)
+## Screenshots
+
+### Main Interface (Dark Theme)
+![Main Interface](screenshots/main-dark.png)
+
+### Editor with Floating Toolbar
+![Editor Toolbar](screenshots/editor-toolbar.png)
 
 ## Features
 
+### OCR & Text Extraction
 - **Select Area** — Capture any screen region and extract text using AI vision models
-- **Snip & Edit** — Annotate screenshots with freehand drawing, arrows, lines, rectangles, text, and eraser
 - **Clipboard Scan** — Extract text directly from images in your clipboard
 - **AI Text Correction** — Automatically fix OCR character errors using a secondary AI model
-- **Multi-language UI** — Switch between Turkish and English with one click
+- **Focus Capture** — Capture focused window content
+
+### DrawPen-Style Editor
+- **Floating Toolbar** — Pill-shaped toolbar at the bottom of the canvas (DrawPen design)
+- **Freehand Drawing** — Smooth pen strokes with adjustable width
+- **Highlighter** — Semi-transparent marker for emphasis
+- **Shapes** — Rectangle, oval, arrow, and line tools
+- **Text Tool** — Multi-line text with bold, italic, and background options
+- **Eraser** — Remove annotations precisely
+- **Color Picker** — Quick color selection with 6 preset colors
+- **Width Presets** — 4 line width options shown as visual dots
+- **Undo/Redo** — Full history support (Ctrl+Z / Ctrl+Y)
+- **Copy & Save** — Export annotated images to clipboard or file
+
+### Multi-Region Blur
+- **Selective Blur** — Select multiple areas to keep sharp, blur everything else
+- **Privacy Protection** — Quickly redact sensitive content in screenshots
+
+### General
+- **Multi-language UI** — Turkish and English with one click
 - **Light / Dark Theme** — Toggle between themes instantly
 - **Global Hotkey** — Press `Ctrl+Shift+X` anywhere to start a capture
-- **System Tray** — Runs quietly in the background, always accessible
-- **Auto-launch** — Optionally start with Windows (enabled by default)
+- **System Tray** — Runs quietly in the background
+- **Auto-launch** — Optionally start with Windows
 
 ## Download
 
@@ -30,16 +55,18 @@ Download the latest installer from the [Releases](https://github.com/palamut62/s
 
 ## Editor Tools
 
-| Tool | Description |
-|------|-------------|
-| Draw | Freehand pen drawing |
-| Arrow | Double-ended arrow |
-| Line | Straight line |
-| Rectangle | Rectangle outline |
-| Text | Multi-line text with bold, italic, and background options |
-| Eraser | Erase annotations |
-
-Text supports multiple lines (Enter for new line, Ctrl+Enter to apply). Includes color picker, adjustable line width, and font size controls.
+| Tool | Shortcut | Description |
+|------|----------|-------------|
+| Draw | — | Freehand pen drawing |
+| Highlighter | — | Semi-transparent marker |
+| Arrow | — | Double-ended arrow |
+| Line | — | Straight line |
+| Rectangle | — | Rectangle outline |
+| Oval | — | Ellipse outline |
+| Text | — | Multi-line text editor |
+| Eraser | — | Erase annotations |
+| Undo | Ctrl+Z | Undo last action |
+| Redo | Ctrl+Y | Redo undone action |
 
 ## Tech Stack
 
