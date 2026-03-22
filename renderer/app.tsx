@@ -7,6 +7,9 @@ import { type Theme, getStoredTheme, setStoredTheme, applyTheme } from './theme'
 import { performOCR, correctText, type OCRResult } from './ocr-engine';
 
 type View = 'main' | 'result' | 'settings' | 'editor' | 'blur-preview';
+const MAIN_WIDTH = 400;
+const MAIN_HEIGHT = 390;
+const DETAIL_HEIGHT = 500;
 
 export interface OCRModel { id: string; name: string; free: boolean; }
 export interface TextModel { id: string; name: string; free: boolean; }
@@ -113,6 +116,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!window.electronAPI?.resizeWindow) return;
+    if (view === 'main') {
+      window.electronAPI.resizeWindow(MAIN_WIDTH, MAIN_HEIGHT);
+      return;
+    }
+    if (view === 'settings' || view === 'result' || view === 'editor') {
+      window.electronAPI.resizeWindow(MAIN_WIDTH, DETAIL_HEIGHT);
+    }
+  }, [view]);
+
+  useEffect(() => {
     const stored = localStorage.getItem('openrouter-api-key');
     if (stored) setApiKey(stored);
     setSelectedModel(localStorage.getItem('ocr-model') || '');
@@ -149,7 +163,7 @@ export default function App() {
   // --- Titlebar (shared) ---
   const titlebar = (title: string, showBack?: () => void, extra?: React.ReactNode) => (
     <div className="titlebar">
-      {showBack && <button className="back-btn" onClick={showBack}>&larr;</button>}
+      {showBack && <button className="back-btn" aria-label="Back" onClick={showBack}>&larr;</button>}
       <span className="title">{title}</span>
       {extra}
       <div className="titlebar-spacer" />
@@ -159,11 +173,11 @@ export default function App() {
           <button className={`toggle-btn ${lang === 'en' ? 'active' : ''}`} onClick={() => changeLang('en')}>EN</button>
         </div>
         <div className="toggle-group">
-          <button className={`toggle-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => changeTheme('dark')}>&#9790;</button>
-          <button className={`toggle-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => changeTheme('light')}>&#9788;</button>
+          <button className={`toggle-btn ${theme === 'dark' ? 'active' : ''}`} aria-label="Dark theme" onClick={() => changeTheme('dark')}>&#9790;</button>
+          <button className={`toggle-btn ${theme === 'light' ? 'active' : ''}`} aria-label="Light theme" onClick={() => changeTheme('light')}>&#9788;</button>
         </div>
-        <button className="win-btn" onClick={() => window.electronAPI?.minimizeWindow()}>&#8722;</button>
-        <button className="win-btn win-close" onClick={() => window.electronAPI?.closeWindow()}>&#10005;</button>
+        <button className="win-btn" aria-label="Minimize window" onClick={() => window.electronAPI?.minimizeWindow()}>&#8722;</button>
+        <button className="win-btn win-close" aria-label="Close window" onClick={() => window.electronAPI?.closeWindow()}>&#10005;</button>
       </div>
     </div>
   );
@@ -173,7 +187,7 @@ export default function App() {
   const currentModelName = currentModel?.name;
   const statusBar = (
     <div className="status-bar">
-      <span className="status-dot" />
+      <span className="status-dot" aria-hidden="true" />
       <span>{currentModelName ? currentModelName.split(' ').slice(0, 3).join(' ') : T('main.noModel')}</span>
       <span className="status-sep">|</span>
       <span>{T('app.hotkey')}</span>
@@ -215,10 +229,10 @@ export default function App() {
           </div>
         </div>
         <div className="editor-actions">
-          <button className="btn secondary" onClick={() => { setView('main'); setBlurImage(null); window.electronAPI?.resizeWindow(400, 500); }}>
+          <button className="btn secondary" onClick={() => { setView('main'); setBlurImage(null); window.electronAPI?.resizeWindow(MAIN_WIDTH, MAIN_HEIGHT); }}>
             {T('blur.cancel')}
           </button>
-          <button className="btn secondary" onClick={() => { setBlurImage(null); window.electronAPI?.resizeWindow(400, 500); window.electronAPI?.startBlurCapture(); }}>
+          <button className="btn secondary" onClick={() => { setBlurImage(null); window.electronAPI?.resizeWindow(MAIN_WIDTH, MAIN_HEIGHT); window.electronAPI?.startBlurCapture(); }}>
             {T('blur.retake')}
           </button>
           <button className="btn primary" onClick={async () => {
@@ -249,64 +263,71 @@ export default function App() {
     <div className="main-container">
       {titlebar(T('app.title'), undefined, <span className="hotkey-hint">{T('app.hotkey')}</span>)}
 
-      {/* Main content - no flex grow, just natural height */}
-      <div className="content compact">
-        <div className="action-grid">
-          <button className="btn primary" onClick={() => window.electronAPI?.startCapture()}>
-            <span className="icon">&#9634;</span>
-            {T('main.selectArea')}
+      <div className="content compact dashboard">
+        <div className="capture-cluster">
+          <button className="btn primary action-main" onClick={() => window.electronAPI?.startCapture()}>
+            <span className="icon" aria-hidden="true">&#9634;</span>
+            <span className="action-texts">
+              <span className="action-label">{T('main.selectArea')}</span>
+              <span className="action-meta">{T('app.hotkey')}</span>
+            </span>
           </button>
-          <button className="btn secondary" onClick={() => window.electronAPI?.startSnipCapture()}>
-            <span className="icon">&#9998;</span>
-            {T('main.snipEdit')}
-          </button>
-          <button className="btn secondary" onClick={() => window.electronAPI?.startBlurCapture()}>
-            <span className="icon">&#128065;</span>
-            {T('main.blurCapture')}
-          </button>
-          <button className="btn secondary full" onClick={async () => {
+
+          <div className="quick-row">
+            <button className="btn secondary action-quick" onClick={() => window.electronAPI?.startSnipCapture()}>
+              <span className="icon" aria-hidden="true">&#9998;</span>
+              <span className="action-label">{T('main.snipEdit')}</span>
+            </button>
+            <button className="btn secondary action-quick" onClick={() => window.electronAPI?.startBlurCapture()}>
+              <span className="icon" aria-hidden="true">&#128065;</span>
+              <span className="action-label">{T('main.blurCapture')}</span>
+            </button>
+          </div>
+
+          <button className="btn secondary action-clipboard" onClick={async () => {
             const img = await window.electronAPI?.getClipboardImage();
             if (img) { setCapturedImage(img); await runOCR(img); }
           }}>
-            <span className="icon">&#128203;</span>
-            {T('main.scanClipboard')}
+            <span className="icon" aria-hidden="true">&#128203;</span>
+            <span className="action-label">{T('main.scanClipboard')}</span>
           </button>
         </div>
 
-        <div className="model-info">
-          <span className="label">OCR</span>
-          <span className="name">{currentModel?.name || T('main.noModel')}</span>
-          {currentModel?.free && <span className="free-badge">{T('main.free')}</span>}
-          {currentModel && !currentModel.free && <span className="paid-badge">{T('main.paid')}</span>}
-        </div>
-
-        {correctionEnabled && (
+        <div className="models-stack">
           <div className="model-info">
-            <span className="label">FIX</span>
-            <span className="name">{currentCorr?.name || correctionModel || T('main.noModel')}</span>
-            {currentCorr?.free && <span className="free-badge">{T('main.free')}</span>}
-            {currentCorr && !currentCorr.free && <span className="paid-badge">{T('main.paid')}</span>}
+            <span className="label">OCR</span>
+            <span className="name">{currentModel?.name || T('main.noModel')}</span>
+            {currentModel?.free && <span className="free-badge">{T('main.free')}</span>}
+            {currentModel && !currentModel.free && <span className="paid-badge">{T('main.paid')}</span>}
           </div>
-        )}
 
-        {result && (
-          <button className="btn outline" onClick={() => setView('result')}>
-            <span className="icon">&#128196;</span> {T('main.lastResult')}
+          {correctionEnabled && (
+            <div className="model-info">
+              <span className="label">FIX</span>
+              <span className="name">{currentCorr?.name || correctionModel || T('main.noModel')}</span>
+              {currentCorr?.free && <span className="free-badge">{T('main.free')}</span>}
+              {currentCorr && !currentCorr.free && <span className="paid-badge">{T('main.paid')}</span>}
+            </div>
+          )}
+        </div>
+
+        <div className="utility-row">
+          <button className={`btn outline utility-btn ${!result ? 'full' : ''}`} onClick={() => setView('settings')}>
+            <span className="icon" aria-hidden="true">&#9881;</span> {T('main.settings')}
           </button>
-        )}
+
+          {result && (
+            <button className="btn outline utility-btn" onClick={() => setView('result')}>
+              <span className="icon" aria-hidden="true">&#128196;</span> {T('main.lastResult')}
+            </button>
+          )}
+        </div>
 
         {!apiKey && <div className="warning">{T('main.noApiKey')}</div>}
         {apiKey && !selectedModel && <div className="warning">{T('main.noModel')}</div>}
       </div>
 
-      {/* Spacer pushes footer down */}
-      <div style={{ flex: 1 }} />
-
-      {/* Footer: settings button + status bar */}
       <div className="main-footer">
-        <button className="footer-settings-btn" onClick={() => setView('settings')}>
-          <span>&#9881;</span> {T('main.settings')}
-        </button>
         {statusBar}
       </div>
     </div>
