@@ -1,8 +1,8 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, clipboard, screen, Tray, Menu, nativeImage, dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { captureScreen, captureRegion, optimizeForOCR, createBlurredCapture } from './capture';
-import { createOverlayWindow } from './overlay-window';
+import { captureScreen, captureRegion, optimizeForOCR, createMultiRegionBlur } from './capture';
+import { createOverlayWindow, createMultiRegionOverlay } from './overlay-window';
 
 // Fix Windows fullscreen occlusion detection
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
@@ -102,42 +102,53 @@ ipcMain.handle('start-capture', () => {
   startCapture();
 });
 
-ipcMain.handle('region-selected', async (_event, region: { x: number; y: number; width: number; height: number }) => {
+ipcMain.handle('region-selected', async (_event, regionOrRegions: any) => {
   try {
-    // Overlay sends CSS (logical) pixels, screenshot is in physical pixels
     const primaryDisplay = screen.getPrimaryDisplay();
     const sf = primaryDisplay.scaleFactor;
     const screenW = Math.round(primaryDisplay.bounds.width * sf);
     const screenH = Math.round(primaryDisplay.bounds.height * sf);
 
-    let sx = Math.round(region.x * sf);
-    let sy = Math.round(region.y * sf);
-    let sw = Math.round(region.width * sf);
-    let sh = Math.round(region.height * sf);
-
-    // Clamp to screenshot bounds
-    sx = Math.max(0, Math.min(sx, screenW - 1));
-    sy = Math.max(0, Math.min(sy, screenH - 1));
-    sw = Math.min(sw, screenW - sx);
-    sh = Math.min(sh, screenH - sy);
-
-    if (sw < 1 || sh < 1) throw new Error('Selection too small');
-
-    const scaledRegion = { x: sx, y: sy, width: sw, height: sh };
-    const imageBuffer = await captureRegion(scaledRegion);
+    function scaleRegion(region: { x: number; y: number; width: number; height: number }) {
+      let sx = Math.round(region.x * sf);
+      let sy = Math.round(region.y * sf);
+      let sw = Math.round(region.width * sf);
+      let sh = Math.round(region.height * sf);
+      sx = Math.max(0, Math.min(sx, screenW - 1));
+      sy = Math.max(0, Math.min(sy, screenH - 1));
+      sw = Math.min(sw, screenW - sx);
+      sh = Math.min(sh, screenH - sy);
+      return { x: sx, y: sy, width: sw, height: sh };
+    }
 
     overlayWindow?.close();
     overlayWindow = null;
     mainWindow?.show();
 
+    // Multi-region blur mode (array of regions)
+    if (blurMode && Array.isArray(regionOrRegions)) {
+      const scaledRegions = regionOrRegions.map(scaleRegion).filter((r: any) => r.width > 0 && r.height > 0);
+      const blurredBuffer = await createMultiRegionBlur(scaledRegions);
+      blurMode = false;
+      const base64 = blurredBuffer.toString('base64');
+      mainWindow?.webContents.send('blur-preview', base64);
+      return base64;
+    }
+
+    // Single region (legacy blur or normal capture)
+    const region = Array.isArray(regionOrRegions) ? regionOrRegions[0] : regionOrRegions;
+    const scaledRegion = scaleRegion(region);
+    if (scaledRegion.width < 1 || scaledRegion.height < 1) throw new Error('Selection too small');
+
+    const imageBuffer = await captureRegion(scaledRegion);
+
     if (blurMode) {
-      const blurredBuffer = await createBlurredCapture(scaledRegion);
+      const blurredBuffer = await createMultiRegionBlur([scaledRegion]);
       blurMode = false;
       const base64 = blurredBuffer.toString('base64');
       mainWindow?.webContents.send('blur-preview', base64);
       return base64;
     } else if (snipMode) {
-      // Send raw PNG for editor (no compression)
       const base64 = imageBuffer.toString('base64');
       console.log('[SNIP] base64 length:', base64.length);
       pendingSnipBase64 = base64;
@@ -145,7 +156,6 @@ ipcMain.handle('region-selected', async (_event, region: { x: number; y: number;
       snipMode = false;
       return base64;
     } else {
-      // Optimize for OCR API
       const base64 = await optimizeForOCR(imageBuffer);
       mainWindow?.webContents.send('capture-complete', base64);
       return base64;
@@ -167,9 +177,29 @@ ipcMain.handle('cancel-capture', () => {
   mainWindow?.show();
 });
 
-ipcMain.handle('start-blur-capture', () => {
+ipcMain.handle('start-blur-capture', async () => {
+  if (overlayWindow) return;
   blurMode = true;
-  startCapture();
+  mainWindow?.hide();
+  try {
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.size;
+    const scaleFactor = primaryDisplay.scaleFactor;
+    const screenshotPath = await captureScreen();
+    overlayWindow = createMultiRegionOverlay(
+      screenshotPath,
+      () => {},
+      () => {},
+    );
+    overlayWindow.on('closed', () => {
+      overlayWindow = null;
+      mainWindow?.show();
+    });
+  } catch (err) {
+    console.error('Blur capture failed:', err);
+    blurMode = false;
+    mainWindow?.show();
+  }
 });
 
 ipcMain.handle('copy-to-clipboard', (_event, text: string) => {

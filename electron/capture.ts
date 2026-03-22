@@ -76,6 +76,15 @@ export async function createBlurredCapture(region: {
   width: number;
   height: number;
 }): Promise<Buffer> {
+  return createMultiRegionBlur([region]);
+}
+
+export async function createMultiRegionBlur(regions: Array<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}>): Promise<Buffer> {
   if (!lastScreenshotPath || !fs.existsSync(lastScreenshotPath)) {
     throw new Error('No screenshot available. Call captureScreen first.');
   }
@@ -90,26 +99,27 @@ export async function createBlurredCapture(region: {
     .png()
     .toBuffer();
 
-  // Extract the sharp (unblurred) region from original
-  const sharpRegion = await sharp(lastScreenshotPath)
-    .extract({
-      left: region.x,
-      top: region.y,
-      width: region.width,
-      height: region.height,
-    })
-    .png()
-    .toBuffer();
+  // Extract sharp (unblurred) regions from original and composite them all
+  const composites: Array<{ input: Buffer; left: number; top: number }> = [];
+  for (const region of regions) {
+    // Clamp region to image bounds
+    const left = Math.max(0, Math.min(region.x, imgW - 1));
+    const top = Math.max(0, Math.min(region.y, imgH - 1));
+    const width = Math.min(region.width, imgW - left);
+    const height = Math.min(region.height, imgH - top);
+    if (width < 1 || height < 1) continue;
 
-  // Composite: blurred background + sharp region on top
+    const sharpRegion = await sharp(lastScreenshotPath)
+      .extract({ left, top, width, height })
+      .png()
+      .toBuffer();
+
+    composites.push({ input: sharpRegion, left, top });
+  }
+
+  // Composite: blurred background + all sharp regions on top
   const result = await sharp(blurred)
-    .composite([
-      {
-        input: sharpRegion,
-        left: region.x,
-        top: region.y,
-      },
-    ])
+    .composite(composites)
     .png()
     .toBuffer();
 
