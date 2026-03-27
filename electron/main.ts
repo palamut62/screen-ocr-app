@@ -1,11 +1,14 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, clipboard, screen, Tray, Menu, nativeImage, dialog } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, clipboard, screen, Tray, Menu, nativeImage, dialog, net } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import sharp from 'sharp';
 import { captureScreen, captureRegion, optimizeForOCR, createMultiRegionBlur } from './capture';
 import { createOverlayWindow, createMultiRegionOverlay } from './overlay-window';
 
 // Fix Windows fullscreen occlusion detection
-app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+}
 
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
@@ -37,9 +40,10 @@ function createTray() {
 }
 
 function createMainWindow() {
+  const iconExt = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
   const appIconPath = isDev
-    ? path.join(__dirname, '..', '..', 'assets', 'icon.ico')
-    : path.join(process.resourcesPath, 'assets', 'icon.ico');
+    ? path.join(__dirname, '..', '..', 'assets', iconExt)
+    : path.join(process.resourcesPath, 'assets', iconExt);
 
   mainWindow = new BrowserWindow({
     width: 400,
@@ -78,6 +82,9 @@ async function startCapture() {
   if (overlayWindow) return;
 
   mainWindow?.hide();
+
+  // Wait for the window to fully hide before capturing
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   try {
     const primaryDisplay = screen.getPrimaryDisplay();
@@ -124,6 +131,7 @@ ipcMain.handle('region-selected', async (_event, regionOrRegions: any) => {
     overlayWindow?.close();
     overlayWindow = null;
     mainWindow?.show();
+    mainWindow?.focus();
 
     // Multi-region blur mode (array of regions)
     if (blurMode && Array.isArray(regionOrRegions)) {
@@ -152,6 +160,7 @@ ipcMain.handle('region-selected', async (_event, regionOrRegions: any) => {
       const base64 = imageBuffer.toString('base64');
       console.log('[SNIP] base64 length:', base64.length);
       pendingSnipBase64 = base64;
+      mainWindow?.setAlwaysOnTop(true, 'screen-saver');
       mainWindow?.webContents.send('snip-complete', base64);
       snipMode = false;
       return base64;
@@ -181,6 +190,7 @@ ipcMain.handle('start-blur-capture', async () => {
   if (overlayWindow) return;
   blurMode = true;
   mainWindow?.hide();
+  await new Promise(resolve => setTimeout(resolve, 300));
   try {
     const primaryDisplay = screen.getPrimaryDisplay();
     const { width, height } = primaryDisplay.size;
@@ -276,6 +286,10 @@ ipcMain.handle('save-blur', async (_event, base64: string) => {
   return result.filePath;
 });
 
+ipcMain.handle('editor-closed', () => {
+  mainWindow?.setAlwaysOnTop(false);
+});
+
 ipcMain.handle('save-snip', async (_event, base64: string) => {
   const result = await dialog.showSaveDialog(mainWindow!, {
     defaultPath: `snip-${Date.now()}.png`,
@@ -284,6 +298,52 @@ ipcMain.handle('save-snip', async (_event, base64: string) => {
   if (result.canceled || !result.filePath) return null;
   const buf = Buffer.from(base64, 'base64');
   fs.writeFileSync(result.filePath, buf);
+  return result.filePath;
+});
+
+// Open image file dialog → base64
+ipcMain.handle('open-image-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    title: 'Resim Aç',
+    filters: [{ name: 'Resimler', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tiff'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || !result.filePaths[0]) return null;
+  const buf = fs.readFileSync(result.filePaths[0]);
+  // Normalize to PNG base64 via Sharp
+  const png = await sharp(buf).png().toBuffer();
+  return png.toString('base64');
+});
+
+// Fetch image from a URL → base64
+ipcMain.handle('fetch-image-url', async (_event, url: string) => {
+  try {
+    const response = await net.fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const arrayBuf = await response.arrayBuffer();
+    const buf = Buffer.from(arrayBuf);
+    const png = await sharp(buf).png().toBuffer();
+    return png.toString('base64');
+  } catch (err: any) {
+    console.error('[fetch-image-url]', err.message);
+    return null;
+  }
+});
+
+// Save image in chosen format with quality
+ipcMain.handle('save-image-format', async (_event, base64: string, format: 'png' | 'jpeg' | 'webp', quality: number) => {
+  const ext = format === 'jpeg' ? 'jpg' : format;
+  const result = await dialog.showSaveDialog(mainWindow!, {
+    defaultPath: `snip-${Date.now()}.${ext}`,
+    filters: [{ name: `${format.toUpperCase()} Image`, extensions: [ext] }],
+  });
+  if (result.canceled || !result.filePath) return null;
+  const buf = Buffer.from(base64, 'base64');
+  let out: Buffer;
+  if (format === 'jpeg') out = await sharp(buf).jpeg({ quality }).toBuffer();
+  else if (format === 'webp') out = await sharp(buf).webp({ quality }).toBuffer();
+  else out = await sharp(buf).png({ compressionLevel: Math.round((100 - quality) / 11) }).toBuffer();
+  fs.writeFileSync(result.filePath, out);
   return result.filePath;
 });
 

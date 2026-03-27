@@ -91,7 +91,7 @@ export function createOverlayWindow(
     left: 50%;
     transform: translateX(-50%);
     color: white;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', 'Ubuntu', 'DejaVu Sans', sans-serif;
     font-size: 14px;
     background: rgba(0,0,0,0.7);
     padding: 8px 16px;
@@ -232,7 +232,7 @@ export function createMultiRegionOverlay(
   #cutout-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 2; pointer-events: none; overflow: hidden; }
   .cutout-region { position: absolute; overflow: hidden; }
   .cutout-region img { position: absolute; width: 100vw; height: 100vh; }
-  #info { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; font-family: 'Segoe UI', sans-serif; font-size: 13px; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 10px; z-index: 10; pointer-events: none; user-select: none; text-align: center; line-height: 1.6; }
+  #info { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: white; font-family: 'Segoe UI', 'Ubuntu', 'DejaVu Sans', sans-serif; font-size: 13px; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 10px; z-index: 10; pointer-events: none; user-select: none; text-align: center; line-height: 1.6; }
   #info kbd { background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 3px; font-size: 12px; }
   #event-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 20; cursor: crosshair; }
 </style>

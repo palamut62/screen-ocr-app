@@ -182,6 +182,7 @@ export default function App() {
     </div>
   );
 
+
   const currentModel = models.find(m => m.id === selectedModel);
   const currentCorr = textModels.find(m => m.id === correctionModel);
   const currentModelName = currentModel?.name;
@@ -284,13 +285,22 @@ export default function App() {
             </button>
           </div>
 
-          <button className="btn secondary action-clipboard" onClick={async () => {
-            const img = await window.electronAPI?.getClipboardImage();
-            if (img) { setCapturedImage(img); await runOCR(img); }
-          }}>
-            <span className="icon" aria-hidden="true">&#128203;</span>
-            <span className="action-label">{T('main.scanClipboard')}</span>
-          </button>
+          <div className="quick-row">
+            <button className="btn secondary action-quick" onClick={async () => {
+              const img = await window.electronAPI?.getClipboardImage();
+              if (img) { setCapturedImage(img); await runOCR(img); }
+            }}>
+              <span className="icon" aria-hidden="true">&#128203;</span>
+              <span className="action-label">{T('main.scanClipboard')}</span>
+            </button>
+            <button className="btn secondary action-quick" onClick={async () => {
+              const img = await window.electronAPI?.openImageFile?.();
+              if (img) { setSnipImage(img); setView('editor'); }
+            }}>
+              <span className="icon" aria-hidden="true">&#128193;</span>
+              <span className="action-label">{T('main.openFile')}</span>
+            </button>
+          </div>
         </div>
 
         <div className="models-stack">

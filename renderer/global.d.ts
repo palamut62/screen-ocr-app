@@ -19,6 +19,10 @@ interface ElectronAPI {
   startBlurCapture: () => Promise<void>;
   onBlurPreview: (callback: (base64: string) => void) => void;
   saveBlur: (base64: string) => Promise<string | null>;
+  editorClosed: () => Promise<void>;
+  openImageFile: () => Promise<string | null>;
+  fetchImageUrl: (url: string) => Promise<string | null>;
+  saveImageFormat: (base64: string, format: 'png' | 'jpeg' | 'webp', quality: number) => Promise<string | null>;
 }
 
 interface Window {

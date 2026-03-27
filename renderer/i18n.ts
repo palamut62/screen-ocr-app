@@ -10,6 +10,7 @@ const translations = {
   'main.snipEdit': { tr: 'Kes & Duzenle', en: 'Snip & Edit' },
   'main.scanClipboard': { tr: 'Panodan Tara', en: 'Scan Clipboard' },
   'main.blurCapture': { tr: 'Odak Yakala', en: 'Focus Capture' },
+  'main.openFile': { tr: 'Dosya Ac', en: 'Open File' },
   'blur.title': { tr: 'Odak Onizleme', en: 'Focus Preview' },
   'blur.save': { tr: 'PNG Kaydet', en: 'Save PNG' },
   'blur.saved': { tr: 'Kaydedildi!', en: 'Saved!' },

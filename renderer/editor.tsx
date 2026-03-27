@@ -355,13 +355,22 @@ export default function Editor({ imageBase64, onClose, lang, T }: Props) {
   const [textBg, setTextBg] = useState(false);
   const [rainbow, setRainbow] = useState(false);
 
+  const [currentBase64, setCurrentBase64] = useState(imageBase64);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [textInput, setTextInput] = useState<{ x: number; y: number } | null>(null);
   const [textValue, setTextValue] = useState('');
   const [saved, setSaved] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [showColors, setShowColors] = useState(false);
+
+  // URL dialog
+  const [showUrlDialog, setShowUrlDialog] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlLoading, setUrlLoading] = useState(false);
+
+  // Save format dialog
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveFormat, setSaveFormat] = useState<'png' | 'jpeg' | 'webp'>('png');
+  const [saveQuality, setSaveQuality] = useState(90);
 
   // Figure-based undo/redo
   const [figures, setFigures] = useState<Figure[]>([]);
@@ -444,13 +453,23 @@ export default function Editor({ imageBase64, onClose, lang, T }: Props) {
     return () => { window.electronAPI?.resizeWindow?.(400, 500); };
   }, []);
 
+  function loadNewImage(base64: string) {
+    setCurrentBase64(base64);
+    setFigures([]);
+    setUndoStack([]);
+    setRedoStack([]);
+    setImgLoaded(false);
+    setTextInput(null);
+    selectedIdRef.current = null;
+  }
+
   useEffect(() => {
-    if (!imageBase64) return;
+    if (!currentBase64) return;
     const img = new Image();
     img.onerror = () => console.error('[EDITOR] Image load FAILED');
     img.onload = async () => {
       imgRef.current = img;
-      const chrome = 80;
+      const chrome = 114; // 34px titlebar + 72px ribbon + 8px padding
       const screenInfo = await window.electronAPI?.getScreenSize?.();
       const maxScreenW = screenInfo?.width ?? 1920;
       const maxScreenH = screenInfo?.height ?? 1080;
@@ -466,8 +485,8 @@ export default function Editor({ imageBase64, onClose, lang, T }: Props) {
       drawRetryRef.current = 0;
       setTimeout(() => initCanvas(img, canvasW, canvasH), 150);
     };
-    img.src = `data:image/png;base64,${imageBase64}`;
-  }, [imageBase64]);
+    img.src = `data:image/png;base64,${currentBase64}`;
+  }, [currentBase64]);
 
   function initCanvas(img: HTMLImageElement, w: number, h: number) {
     const canvas = canvasRef.current;
@@ -743,11 +762,36 @@ export default function Editor({ imageBase64, onClose, lang, T }: Props) {
   }
 
   async function handleSave() {
+    setShowSaveDialog(true);
+  }
+
+  async function handleSaveFormat(format: 'png' | 'jpeg' | 'webp', quality: number) {
     renderAll();
     const canvas = canvasRef.current; if (!canvas) return;
     const base64 = canvas.toDataURL('image/png').split(',')[1];
-    await window.electronAPI?.saveSnip(base64);
-    showToast(T('editor.save'));
+    setShowSaveDialog(false);
+    const saved = await window.electronAPI?.saveImageFormat?.(base64, format, quality);
+    if (saved) showToast(T('editor.save'));
+  }
+
+  async function handleOpenFile() {
+    const base64 = await window.electronAPI?.openImageFile?.();
+    if (base64) loadNewImage(base64);
+  }
+
+  async function handleFetchUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    setUrlLoading(true);
+    const base64 = await window.electronAPI?.fetchImageUrl?.(url);
+    setUrlLoading(false);
+    if (base64) {
+      loadNewImage(base64);
+      setShowUrlDialog(false);
+      setUrlInput('');
+    } else {
+      showToast(lang === 'tr' ? 'Resim yüklenemedi' : 'Failed to load image');
+    }
   }
 
   // === DELETE SELECTED ===
@@ -837,15 +881,187 @@ export default function Editor({ imageBase64, onClose, lang, T }: Props) {
     return 'crosshair';
   };
 
+  const toolLabel = (t: Tool): string => {
+    const keyMap: Record<Tool, string> = {
+      select: T('editor.select'), draw: T('editor.pen'), highlighter: T('editor.highlighter'),
+      fade: T('editor.fade'), laser: T('editor.laser'), arrow: T('editor.arrow'),
+      line: T('editor.line'), rect: T('editor.rect'), oval: T('editor.oval'),
+      text: T('editor.text'), eraser: T('editor.eraser'),
+    };
+    return keyMap[t];
+  };
+
+  function handleClose() {
+    window.electronAPI?.editorClosed?.();
+    onClose();
+  }
+
   return (
     <div className="editor-container">
       <div className="editor-titlebar">
         <span className="editor-titlebar-text">{T('editor.title')}</span>
         <div className="editor-titlebar-btns">
           <button className="titlebar-btn" onClick={() => window.electronAPI?.minimizeWindow()}>&#8722;</button>
-          <button className="titlebar-btn close" onClick={onClose}>&#10005;</button>
+          <button className="titlebar-btn close" onClick={handleClose}>&#10005;</button>
         </div>
       </div>
+
+      {/* ===== PAINT RIBBON ===== */}
+      <div className="ribbon">
+
+        {/* Group: Dosya */}
+        <div className="ribbon-group">
+          <div className="ribbon-group-content">
+            <button className="ribbon-btn" onClick={handleOpenFile} title={lang === 'tr' ? 'Dosya Aç' : 'Open File'}>
+              <span className="ribbon-btn__icon">📂</span>
+              <span className="ribbon-btn__label">{lang === 'tr' ? 'Aç' : 'Open'}</span>
+            </button>
+            <button className="ribbon-btn" onClick={() => setShowUrlDialog(true)} title={lang === 'tr' ? 'Web\'den Aç' : 'Open from Web'}>
+              <span className="ribbon-btn__icon">🌐</span>
+              <span className="ribbon-btn__label">{lang === 'tr' ? 'Web\'den' : 'From Web'}</span>
+            </button>
+          </div>
+          <div className="ribbon-group-label">{lang === 'tr' ? 'Dosya' : 'File'}</div>
+        </div>
+
+        <div className="ribbon-sep" />
+
+        {/* Group: Pano */}
+        <div className="ribbon-group">
+          <div className="ribbon-group-content">
+            <button className="ribbon-btn ribbon-btn--lg" onClick={handleCopy} title={T('editor.copy')}>
+              <span className="ribbon-btn__icon">{saved ? '✓' : '📋'}</span>
+              <span className="ribbon-btn__label">{T('editor.copy')}</span>
+            </button>
+            <button className="ribbon-btn ribbon-btn--lg" onClick={handleSave} title={T('editor.save')}>
+              <span className="ribbon-btn__icon">💾</span>
+              <span className="ribbon-btn__label">{lang === 'tr' ? 'Kaydet' : 'Save'}</span>
+            </button>
+          </div>
+          <div className="ribbon-group-label">{lang === 'tr' ? 'Pano' : 'Clipboard'}</div>
+        </div>
+
+        <div className="ribbon-sep" />
+
+        {/* Group: Çizim Araçları */}
+        <div className="ribbon-group">
+          <div className="ribbon-group-content ribbon-group-content--grid">
+            {drawTools.map(t => (
+              <button key={t}
+                className={`ribbon-tool ${tool === t ? 'ribbon-tool--active' : ''}`}
+                onClick={() => setTool(t)} title={toolLabel(t)}>
+                <span className="ribbon-tool__icon">{TOOL_ICONS[t]}</span>
+                <span className="ribbon-tool__label">{toolLabel(t)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="ribbon-group-label">{lang === 'tr' ? 'Çizim' : 'Draw'}</div>
+        </div>
+
+        <div className="ribbon-sep" />
+
+        {/* Group: Şekiller */}
+        <div className="ribbon-group">
+          <div className="ribbon-group-content ribbon-group-content--grid">
+            {[...shapeTools, ...otherTools].map(t => (
+              <button key={t}
+                className={`ribbon-tool ${tool === t ? 'ribbon-tool--active' : ''}`}
+                onClick={() => setTool(t)} title={toolLabel(t)}>
+                <span className="ribbon-tool__icon">{TOOL_ICONS[t]}</span>
+                <span className="ribbon-tool__label">{toolLabel(t)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="ribbon-group-label">{lang === 'tr' ? 'Şekiller' : 'Shapes'}</div>
+        </div>
+
+        <div className="ribbon-sep" />
+
+        {/* Group: Renkler */}
+        <div className="ribbon-group">
+          <div className="ribbon-group-content ribbon-group-content--col">
+            <div className="ribbon-colors-row">
+              {COLORS.slice(0, 4).map(c => (
+                <button key={c} className={`ribbon-swatch ${color === c && !rainbow ? 'ribbon-swatch--active' : ''}`}
+                  style={{ background: c }} onClick={() => { setColor(c); setRainbow(false); }} />
+              ))}
+            </div>
+            <div className="ribbon-colors-row">
+              {COLORS.slice(4).map(c => (
+                <button key={c} className={`ribbon-swatch ${color === c && !rainbow ? 'ribbon-swatch--active' : ''}`}
+                  style={{ background: c }} onClick={() => { setColor(c); setRainbow(false); }} />
+              ))}
+              <button className={`ribbon-swatch ribbon-swatch--rainbow ${rainbow ? 'ribbon-swatch--active' : ''}`}
+                onClick={() => setRainbow(!rainbow)} title={T('editor.rainbow')}>🌈</button>
+            </div>
+            <div className="ribbon-color-preview" style={{
+              background: rainbow ? 'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)' : color
+            }} />
+          </div>
+          <div className="ribbon-group-label">{lang === 'tr' ? 'Renkler' : 'Colors'}</div>
+        </div>
+
+        <div className="ribbon-sep" />
+
+        {/* Group: Boyut */}
+        <div className="ribbon-group">
+          <div className="ribbon-group-content ribbon-group-content--col">
+            {WIDTH_PRESETS.map(w => (
+              <button key={w} className={`ribbon-width ${lineWidth === w ? 'ribbon-width--active' : ''}`}
+                onClick={() => setLineWidth(w)}>
+                <span className="ribbon-width__line" style={{ height: w }} />
+              </button>
+            ))}
+          </div>
+          <div className="ribbon-group-label">{lang === 'tr' ? 'Boyut' : 'Size'}</div>
+        </div>
+
+        {/* Group: Metin Biçimi (only when text tool) */}
+        {tool === 'text' && (
+          <>
+            <div className="ribbon-sep" />
+            <div className="ribbon-group">
+              <div className="ribbon-group-content ribbon-group-content--col">
+                <div className="ribbon-textfmt-row">
+                  <label className="ribbon-fontsize">
+                    <span>{fontSize}px</span>
+                    <input type="range" min="12" max="56" value={fontSize} onChange={e => setFontSize(+e.target.value)} />
+                  </label>
+                </div>
+                <div className="ribbon-textfmt-row">
+                  <button className={`ribbon-fmt ${bold ? 'ribbon-fmt--active' : ''}`} onClick={() => setBold(!bold)}><b>B</b></button>
+                  <button className={`ribbon-fmt ${italic ? 'ribbon-fmt--active' : ''}`} onClick={() => setItalic(!italic)}><i>I</i></button>
+                  <button className={`ribbon-fmt ${textBg ? 'ribbon-fmt--active' : ''}`} onClick={() => setTextBg(!textBg)}>BG</button>
+                </div>
+              </div>
+              <div className="ribbon-group-label">{lang === 'tr' ? 'Metin' : 'Text'}</div>
+            </div>
+          </>
+        )}
+
+        <div className="ribbon-sep" />
+
+        {/* Group: Düzenle */}
+        <div className="ribbon-group">
+          <div className="ribbon-group-content">
+            <button className="ribbon-btn" onClick={undo} disabled={undoStack.length === 0} title={T('editor.undo')}>
+              <span className="ribbon-btn__icon">↩</span>
+              <span className="ribbon-btn__label">{T('editor.undo')}</span>
+            </button>
+            <button className="ribbon-btn" onClick={redo} disabled={redoStack.length === 0} title={T('editor.redo')}>
+              <span className="ribbon-btn__icon">↪</span>
+              <span className="ribbon-btn__label">{T('editor.redo')}</span>
+            </button>
+            <button className="ribbon-btn ribbon-btn--danger" onClick={clearCanvas} title={T('editor.clear')}>
+              <span className="ribbon-btn__icon">🗑</span>
+              <span className="ribbon-btn__label">{T('editor.clear')}</span>
+            </button>
+          </div>
+          <div className="ribbon-group-label">{lang === 'tr' ? 'Düzenle' : 'Edit'}</div>
+        </div>
+
+      </div>
+      {/* ===== END RIBBON ===== */}
 
       <div className="editor-canvas-wrapper dp-canvas-wrapper" ref={containerRef}>
         <div className="canvas-stack" style={{ width: canvasRef.current?.width, height: canvasRef.current?.height, display: imgLoaded ? 'block' : 'none' }}>
@@ -895,115 +1111,82 @@ export default function Editor({ imageBase64, onClose, lang, T }: Props) {
         </div>
 
         {toast && <div className="dp-toast">{toast}</div>}
-
-        {/* Floating Toolbar */}
-        <div className={`floating-toolbar ${collapsed ? 'floating-toolbar--mini' : ''}`}>
-          <button className="ft-close" onClick={onClose} title={T('editor.close')}>✕</button>
-
-          <button className="ft-active-tool" title={tool}>
-            <span className="ft-active-tool__icon">{TOOL_ICONS[tool]}</span>
-          </button>
-
-          {!collapsed && (
-            <>
-              <div className="ft-divider" />
-
-              {/* Draw tools */}
-              {drawTools.map(t => (
-                <button key={t} className={`ft-btn ${tool === t ? 'ft-btn--active' : ''}`}
-                  onClick={() => setTool(t)} title={t}>
-                  {TOOL_ICONS[t]}
-                </button>
-              ))}
-
-              <div className="ft-divider" />
-
-              {/* Shape tools */}
-              {shapeTools.map(t => (
-                <button key={t} className={`ft-btn ${tool === t ? 'ft-btn--active' : ''}`}
-                  onClick={() => setTool(t)} title={t}>
-                  {TOOL_ICONS[t]}
-                </button>
-              ))}
-
-              <div className="ft-divider" />
-
-              {/* Other tools */}
-              {otherTools.map(t => (
-                <button key={t} className={`ft-btn ${tool === t ? 'ft-btn--active' : ''}`}
-                  onClick={() => setTool(t)} title={t}>
-                  {TOOL_ICONS[t]}
-                </button>
-              ))}
-
-              <div className="ft-divider" />
-
-              {/* Color */}
-              <button className="ft-color-current" style={{ background: rainbow ? 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)' : color }}
-                onClick={() => setShowColors(!showColors)} title="Color" />
-
-              {/* Rainbow toggle */}
-              <button className={`ft-btn ${rainbow ? 'ft-btn--active ft-btn--rainbow' : ''}`}
-                onClick={() => setRainbow(!rainbow)} title="Rainbow">
-                🌈
-              </button>
-
-              <div className="ft-divider" />
-
-              {/* Width dots */}
-              {WIDTH_PRESETS.map(w => (
-                <button key={w} className={`ft-width ${lineWidth === w ? 'ft-width--active' : ''}`}
-                  onClick={() => setLineWidth(w)}>
-                  <span className="ft-width__dot" style={{ width: w + 2, height: w + 2 }} />
-                </button>
-              ))}
-
-              <div className="ft-divider" />
-
-              {/* Undo / Redo / Clear */}
-              <button className="ft-btn" onClick={undo} disabled={undoStack.length === 0} title={T('editor.undo')}>↩</button>
-              <button className="ft-btn" onClick={redo} disabled={redoStack.length === 0} title={T('editor.redo')}>↪</button>
-              <button className="ft-btn ft-btn--danger" onClick={clearCanvas} title={T('editor.clear')}>🗑</button>
-
-              <div className="ft-divider" />
-
-              {/* Copy / Save */}
-              <button className="ft-btn" onClick={handleCopy} title={T('editor.copy')}>{saved ? '✓' : '📋'}</button>
-              <button className="ft-btn" onClick={handleSave} title={T('editor.save')}>💾</button>
-            </>
-          )}
-
-          <button className="ft-btn ft-collapse" onClick={() => setCollapsed(!collapsed)}>
-            {collapsed ? '›' : '‹'}
-          </button>
-        </div>
-
-        {/* Color picker popup */}
-        {showColors && !collapsed && (
-          <div className="ft-color-popup">
-            {COLORS.map(c => (
-              <button key={c}
-                className={`ft-color-swatch ${color === c ? 'ft-color-swatch--active' : ''}`}
-                style={{ background: c }}
-                onClick={() => { setColor(c); setRainbow(false); setShowColors(false); }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Text formatting popup */}
-        {tool === 'text' && !collapsed && (
-          <div className="ft-text-popup">
-            <label className="ft-text-size">
-              <span>{fontSize}px</span>
-              <input type="range" min="12" max="56" value={fontSize} onChange={e => setFontSize(+e.target.value)} />
-            </label>
-            <button className={`ft-fmt ${bold ? 'ft-fmt--active' : ''}`} onClick={() => setBold(!bold)}><b>B</b></button>
-            <button className={`ft-fmt ${italic ? 'ft-fmt--active' : ''}`} onClick={() => setItalic(!italic)}><i>I</i></button>
-            <button className={`ft-fmt ${textBg ? 'ft-fmt--active' : ''}`} onClick={() => setTextBg(!textBg)}>BG</button>
-          </div>
-        )}
       </div>
+
+      {/* ===== URL DIALOG ===== */}
+      {showUrlDialog && (
+        <div className="editor-modal-overlay" onClick={() => setShowUrlDialog(false)}>
+          <div className="editor-modal" onClick={e => e.stopPropagation()}>
+            <div className="editor-modal__title">
+              {lang === 'tr' ? 'Web\'den Resim Aç' : 'Open Image from Web'}
+            </div>
+            <input
+              className="editor-modal__input"
+              type="url"
+              placeholder="https://example.com/image.png"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleFetchUrl(); if (e.key === 'Escape') setShowUrlDialog(false); }}
+              autoFocus
+            />
+            <div className="editor-modal__hint">
+              {lang === 'tr' ? 'PNG, JPG, WebP, BMP desteklenir' : 'PNG, JPG, WebP, BMP supported'}
+            </div>
+            <div className="editor-modal__actions">
+              <button className="editor-modal__btn editor-modal__btn--cancel" onClick={() => setShowUrlDialog(false)}>
+                {lang === 'tr' ? 'İptal' : 'Cancel'}
+              </button>
+              <button className="editor-modal__btn editor-modal__btn--ok" onClick={handleFetchUrl} disabled={urlLoading || !urlInput.trim()}>
+                {urlLoading ? (lang === 'tr' ? 'Yükleniyor...' : 'Loading...') : (lang === 'tr' ? 'Yükle' : 'Load')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== SAVE FORMAT DIALOG ===== */}
+      {showSaveDialog && (
+        <div className="editor-modal-overlay" onClick={() => setShowSaveDialog(false)}>
+          <div className="editor-modal" onClick={e => e.stopPropagation()}>
+            <div className="editor-modal__title">
+              {lang === 'tr' ? 'Farklı Kaydet' : 'Save As'}
+            </div>
+            <div className="editor-modal__formats">
+              {(['png', 'jpeg', 'webp'] as const).map(fmt => (
+                <button key={fmt}
+                  className={`editor-modal__fmt ${saveFormat === fmt ? 'editor-modal__fmt--active' : ''}`}
+                  onClick={() => setSaveFormat(fmt)}>
+                  {fmt === 'jpeg' ? 'JPG' : fmt.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            {saveFormat !== 'png' && (
+              <label className="editor-modal__quality">
+                <span>{lang === 'tr' ? 'Kalite' : 'Quality'}: {saveQuality}%</span>
+                <input type="range" min="10" max="100" step="5" value={saveQuality}
+                  onChange={e => setSaveQuality(+e.target.value)} />
+              </label>
+            )}
+            {saveFormat === 'png' && (
+              <div className="editor-modal__hint">PNG — {lang === 'tr' ? 'kayıpsız, şeffaflık destekli' : 'lossless, supports transparency'}</div>
+            )}
+            {saveFormat === 'jpeg' && (
+              <div className="editor-modal__hint">JPG — {lang === 'tr' ? 'küçük dosya, fotoğraflar için ideal' : 'small file, great for photos'}</div>
+            )}
+            {saveFormat === 'webp' && (
+              <div className="editor-modal__hint">WebP — {lang === 'tr' ? 'modern format, web için optimize' : 'modern format, optimized for web'}</div>
+            )}
+            <div className="editor-modal__actions">
+              <button className="editor-modal__btn editor-modal__btn--cancel" onClick={() => setShowSaveDialog(false)}>
+                {lang === 'tr' ? 'İptal' : 'Cancel'}
+              </button>
+              <button className="editor-modal__btn editor-modal__btn--ok" onClick={() => handleSaveFormat(saveFormat, saveQuality)}>
+                {lang === 'tr' ? 'Kaydet' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

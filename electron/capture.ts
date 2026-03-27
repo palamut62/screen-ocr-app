@@ -1,8 +1,7 @@
 import sharp from 'sharp';
 import * as path from 'path';
 import * as fs from 'fs';
-import { app } from 'electron';
-import { execSync } from 'child_process';
+import { app, desktopCapturer, screen } from 'electron';
 
 let lastScreenshotPath: string = '';
 
@@ -15,32 +14,27 @@ function getTempDir(): string {
 export async function captureScreen(): Promise<string> {
   const filePath = path.join(getTempDir(), 'screen.png');
 
-  // Write PowerShell script to temp file to avoid escaping issues
-  const psPath = path.join(getTempDir(), 'capture.ps1');
-  const savePath = filePath.replace(/\\/g, '\\\\');
-  const psContent = `
-Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class DPIHelper { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); }'
-[DPIHelper]::SetProcessDPIAware() | Out-Null
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-$bitmap = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height)
-$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-$graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-$bitmap.Save('${savePath}', [System.Drawing.Imaging.ImageFormat]::Png)
-$graphics.Dispose()
-$bitmap.Dispose()
-`;
-  fs.writeFileSync(psPath, psContent, 'utf-8');
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.size;
+  const scaleFactor = primaryDisplay.scaleFactor;
 
-  execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${psPath}"`, {
-    timeout: 10000,
-    windowsHide: true,
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize: {
+      width: Math.round(width * scaleFactor),
+      height: Math.round(height * scaleFactor),
+    },
   });
+
+  if (!sources.length) {
+    throw new Error('No screen source found for capture');
+  }
+
+  const imgBuffer = sources[0].thumbnail.toPNG();
+  fs.writeFileSync(filePath, imgBuffer);
 
   lastScreenshotPath = filePath;
 
-  // Log actual screenshot dimensions for debugging
   const metadata = await sharp(filePath).metadata();
   console.log(`Screenshot captured: ${metadata.width}x${metadata.height}`);
 
