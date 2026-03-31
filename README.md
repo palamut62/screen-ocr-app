@@ -1,102 +1,161 @@
 # Screen OCR
 
-AI-powered screen text extraction and image annotation tool for Windows.
+> AI destekli ekran metni çıkarma ve gelişmiş resim düzenleme aracı — Linux & Windows
 
-## Screenshots
+![Screen OCR Preview](screenshots/app-preview.png)
 
-### Main Interface (Dark Theme)
-![Main Interface](screenshots/main-dark.png)
+---
 
-### Editor with Floating Toolbar
-![Editor Toolbar](screenshots/editor-toolbar.png)
+## Özellikler
 
-## Features
+### 📝 OCR & Metin Çıkarma
+- **Alan Seç** — Ekranın herhangi bir bölgesini seçerek AI ile metin çıkar (`Ctrl+Shift+X`)
+- **Panodan Tara** — Panodaki resimden doğrudan metin çıkar
+- **AI Metin Düzeltme** — OCR hatalarını ikincil bir AI modeliyle otomatik düzelt
+- **Model Seçimi** — OpenRouter üzerinden ücretsiz ve ücretli onlarca vision modeli
 
-### OCR & Text Extraction
-- **Select Area** — Capture any screen region and extract text using AI vision models
-- **Clipboard Scan** — Extract text directly from images in your clipboard
-- **AI Text Correction** — Automatically fix OCR character errors using a secondary AI model
-- **Focus Capture** — Capture focused window content
+### 🎨 Resim Editörü (Paint Ribbon Arayüz)
+- **Paint Tarzı Ribbon** — Titlebar altında MS Paint benzeri gruplu araç çubuğu
+- **Dosya Aç** — PNG, JPG, WebP, BMP, GIF, TIFF formatlarını editörde aç
+- **Web'den Resim** — URL girerek internetten resim yükle
+- **Serbest Çizim** — Catmull-Rom spline ile düzgünleştirilmiş kalem darbeleri
+- **İşaretleyici** — Şeffaf renkli marker
+- **Solma Kalemi** — 3 saniyede otomatik solan çizgiler
+- **Lazer İşaretçi** — Kırmızı parlayan laser pointer izi
+- **Şekiller** — Dikdörtgen, oval, ok, çizgi
+- **Metin** — Çok satırlı metin; kalın, italik, arka plan seçeneği
+- **Silgi** — Annotation'ları temizle
+- **Renk Paleti** — 8 hazır renk + Gökkuşağı modu
+- **Farklı Kaydet** — PNG (kayıpsız), JPG veya WebP (kalite slider ile)
+- **Geri Al / İleri Al** — Tam geçmiş yönetimi (Ctrl+Z / Ctrl+Y)
+- **Editör en önde** — Ekran alıntısı sonrası editör her zaman en üstte açılır
 
-### Image Editor
-- **Floating Toolbar** — Clean pill-shaped toolbar at the bottom of the canvas
-- **Freehand Drawing** — Smooth pen strokes with adjustable width
-- **Highlighter** — Semi-transparent marker for emphasis
-- **Shapes** — Rectangle, oval, arrow, and line tools
-- **Text Tool** — Multi-line text with bold, italic, and background options
-- **Eraser** — Remove annotations precisely
-- **Color Picker** — Quick color selection with 6 preset colors
-- **Width Presets** — 4 line width options shown as visual dots
-- **Undo/Redo** — Full history support (Ctrl+Z / Ctrl+Y)
-- **Copy & Save** — Export annotated images to clipboard or file
+### 🌫️ Blur (Odak Yakalama)
+- **Ekran Blurlama** — Seçilen bölgeler keskin kalır, geri kalan alan bulanıklaşır
+- **Resimden Blur** — Bilgisayarınızdaki herhangi bir resim dosyasını açıp blur uygulayın
+- **Çoklu Bölge** — Birden fazla keskin bölge tanımla
+- **Gizlilik Koruması** — Hassas içerikleri hızlıca gizle
 
-### Multi-Region Blur
-- **Selective Blur** — Select multiple areas to keep sharp, blur everything else
-- **Privacy Protection** — Quickly redact sensitive content in screenshots
+### ⚙️ Genel
+- **Çoklu Dil** — Türkçe ve İngilizce arayüz
+- **Açık / Koyu Tema** — Tek tıkla tema değiştir
+- **Global Kısayol** — `Ctrl+Shift+X` ile anında yakalama
+- **Sistem Tepsisi** — Arka planda sessizce çalışır
+- **Otomatik Başlatma** — Sistem açılışında otomatik başlat
 
-### General
-- **Multi-language UI** — Turkish and English with one click
-- **Light / Dark Theme** — Toggle between themes instantly
-- **Global Hotkey** — Press `Ctrl+Shift+X` anywhere to start a capture
-- **System Tray** — Runs quietly in the background
-- **Auto-launch** — Optionally start with Windows
+---
 
-## Download
+## Ekran Görüntüleri
 
-Download the latest installer from the [Releases](https://github.com/palamut62/screen-ocr-app/releases) page.
+| Ana Ekran | Editör |
+|-----------|--------|
+| ![Ana Ekran](screenshots/main-dark.png) | ![Editör](screenshots/editor-toolbar.png) |
 
-## Getting Started
+---
 
-1. Install and launch Screen OCR
-2. Open **Settings** and enter your [OpenRouter](https://openrouter.ai/) API key
-3. Click **Fetch Models** and select an OCR vision model (free models available)
-4. Optionally enable AI text correction and select a correction model
-5. Click **Select Area** or press `Ctrl+Shift+X` to capture and extract text
+## İndirme
 
-## Editor Tools
+En son sürümü [Releases](https://github.com/palamut62/screen-ocr-app/releases) sayfasından indirin.
 
-| Tool | Shortcut | Description |
-|------|----------|-------------|
-| Draw | — | Freehand pen drawing |
-| Highlighter | — | Semi-transparent marker |
-| Arrow | — | Double-ended arrow |
-| Line | — | Straight line |
-| Rectangle | — | Rectangle outline |
-| Oval | — | Ellipse outline |
-| Text | — | Multi-line text editor |
-| Eraser | — | Erase annotations |
-| Undo | Ctrl+Z | Undo last action |
-| Redo | Ctrl+Y | Redo undone action |
+| Platform | Dosya |
+|----------|-------|
+| Linux (Debian/Ubuntu) | `screen-ocr-app_x.x.x_amd64.deb` |
+| Linux (Diğer) | `Screen OCR-x.x.x.AppImage` |
+| Windows | `Screen OCR Setup x.x.x.exe` |
 
-## Tech Stack
+---
 
-- **Electron** — Desktop application framework
-- **React + TypeScript** — UI components
-- **Vite** — Fast build tooling
-- **Sharp** — Image processing and cropping
-- **OpenRouter API** — AI vision and text model access
+## Kurulum
 
-## Development
+### Linux — .deb (Debian/Ubuntu)
+```bash
+sudo dpkg -i screen-ocr-app_1.5.0_amd64.deb
+```
+
+### Linux — AppImage
+```bash
+chmod +x "Screen OCR-1.5.0.AppImage"
+./"Screen OCR-1.5.0.AppImage"
+```
+
+### Başlarken
+1. Uygulamayı başlat
+2. **Ayarlar**'ı aç ve [OpenRouter](https://openrouter.ai/) API anahtarını gir
+3. **Modelleri Getir**'e tıkla ve bir OCR vision modeli seç (ücretsiz modeller mevcut)
+4. İsteğe bağlı olarak AI metin düzeltmeyi etkinleştir
+5. **Metin Seç**'e tıkla veya `Ctrl+Shift+X` kısayolunu kullan
+
+---
+
+## Editör Araçları
+
+| Araç | Kısayol | Açıklama |
+|------|---------|----------|
+| Seç | `1` | Figure seç, taşı |
+| Kalem | `2` | Serbest çizim |
+| İşaretleyici | `3` | Şeffaf marker |
+| Solma Kalemi | `4` | Otomatik solan çizgi |
+| Lazer | `5` | Lazer işaretçi izi |
+| Ok | `6` | Ok şekli |
+| Çizgi | `7` | Düz çizgi |
+| Dikdörtgen | `8` | Dikdörtgen |
+| Oval | `9` | Elips |
+| Metin | `0` | Metin ekle |
+| Silgi | — | Annotation sil |
+| Geri Al | `Ctrl+Z` | Son işlemi geri al |
+| İleri Al | `Ctrl+Y` | Geri alınanı yinele |
+| Çoğalt | `Ctrl+D` | Seçili figürü kopyala |
+| Sil | `Delete` | Seçili figürü sil |
+| Kaydır | `←↑→↓` | Seçiliyi 1px taşı (Shift: 10px) |
+
+---
+
+## Teknoloji Yığını
+
+- **Electron** — Masaüstü uygulama çatısı
+- **React + TypeScript** — UI bileşenleri
+- **Vite** — Hızlı build aracı
+- **Sharp** — Görüntü işleme (blur, kırpma, format dönüşümü)
+- **OpenRouter API** — AI vision ve metin modeli erişimi
+
+---
+
+## Geliştirme
 
 ```bash
-# Install dependencies
+# Bağımlılıkları yükle
 npm install
 
-# Run in development mode
+# Geliştirme modunda çalıştır
 npm run dev
 
-# Build for production
+# Üretim build
 npm run build
 
-# Create installer
+# Linux installer oluştur
+npm run dist:linux
+
+# Windows installer oluştur
 npm run dist
 ```
 
-## Build Requirements
-
+### Gereksinimler
 - Node.js 18+
-- Windows 10/11 (x64)
+- Linux x64 veya Windows 10/11 x64
 
-## License
+---
+
+## Sürüm Geçmişi
+
+| Sürüm | Öne Çıkan |
+|-------|-----------|
+| **v1.5.0** | Resimden blur özelliği |
+| **v1.4.0** | Paint ribbon editör, web'den resim, çok formatlı kayıt |
+| **v1.3.1** | Multi-region blur, ekran görüntüleri |
+| **v1.3.0** | DrawPen düzenleme özellikleri |
+
+---
+
+## Lisans
 
 MIT
