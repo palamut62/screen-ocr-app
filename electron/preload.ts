@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   saveBlur: (base64: string) => ipcRenderer.invoke('save-blur', base64),
   editorClosed: () => ipcRenderer.invoke('editor-closed'),
+  startBlurFromFile: () => ipcRenderer.invoke('start-blur-from-file'),
   openImageFile: () => ipcRenderer.invoke('open-image-file'),
   fetchImageUrl: (url: string) => ipcRenderer.invoke('fetch-image-url', url),
   saveImageFormat: (base64: string, format: 'png' | 'jpeg' | 'webp', quality: number) =>

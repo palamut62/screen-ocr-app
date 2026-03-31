@@ -283,6 +283,10 @@ export default function App() {
               <span className="icon" aria-hidden="true">&#128065;</span>
               <span className="action-label">{T('main.blurCapture')}</span>
             </button>
+            <button className="btn secondary action-quick" onClick={() => window.electronAPI?.startBlurFromFile?.()}>
+              <span className="icon" aria-hidden="true">&#128247;</span>
+              <span className="action-label">{T('main.blurFromFile')}</span>
+            </button>
           </div>
 
           <div className="quick-row">

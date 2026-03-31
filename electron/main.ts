@@ -133,7 +133,25 @@ ipcMain.handle('region-selected', async (_event, regionOrRegions: any) => {
     mainWindow?.show();
     mainWindow?.focus();
 
-    // Multi-region blur mode (array of regions)
+    // Multi-region blur from FILE (no display scale factor — use file scale instead)
+    if (blurFileMode && Array.isArray(regionOrRegions)) {
+      const scaleX = blurFileScaleX;
+      const scaleY = blurFileScaleY;
+      const filePath = blurFilePath!;
+      const scaledRegions = regionOrRegions.map((r: any) => ({
+        x: Math.round(r.x * scaleX),
+        y: Math.round(r.y * scaleY),
+        width: Math.round(r.width * scaleX),
+        height: Math.round(r.height * scaleY),
+      })).filter((r: any) => r.width > 0 && r.height > 0);
+      const blurredBuffer = await createMultiRegionBlur(scaledRegions, filePath);
+      blurFileMode = false; blurFilePath = null;
+      const base64 = blurredBuffer.toString('base64');
+      mainWindow?.webContents.send('blur-preview', base64);
+      return base64;
+    }
+
+    // Multi-region blur mode from screenshot (array of regions)
     if (blurMode && Array.isArray(regionOrRegions)) {
       const scaledRegions = regionOrRegions.map(scaleRegion).filter((r: any) => r.width > 0 && r.height > 0);
       const blurredBuffer = await createMultiRegionBlur(scaledRegions);
@@ -183,6 +201,8 @@ ipcMain.handle('cancel-capture', () => {
   overlayWindow = null;
   snipMode = false;
   blurMode = false;
+  blurFileMode = false;
+  blurFilePath = null;
   mainWindow?.show();
 });
 
@@ -235,6 +255,10 @@ ipcMain.handle('close-window', () => {
 // Snip capture — same overlay, but sends raw image to editor instead of OCR
 let snipMode = false;
 let blurMode = false;
+let blurFileMode = false;          // blur from a loaded file (not screenshot)
+let blurFilePath: string | null = null;    // path of the loaded file
+let blurFileScaleX = 1;            // image px / screen CSS px
+let blurFileScaleY = 1;
 let pendingSnipBase64: string | null = null;
 
 ipcMain.handle('resize-window', (_event, width: number, height: number) => {
@@ -288,6 +312,52 @@ ipcMain.handle('save-blur', async (_event, base64: string) => {
 
 ipcMain.handle('editor-closed', () => {
   mainWindow?.setAlwaysOnTop(false);
+});
+
+// Blur from a locally opened image file
+ipcMain.handle('start-blur-from-file', async () => {
+  if (overlayWindow) return;
+
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    title: 'Blurlama için Resim Seç',
+    filters: [{ name: 'Resimler', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tiff'] }],
+    properties: ['openFile'],
+  });
+  if (result.canceled || !result.filePaths[0]) return;
+
+  const selectedPath = result.filePaths[0];
+
+  // Normalise to PNG and save to temp so overlay can load it
+  const tempPath = path.join(app.getPath('temp'), 'screen-ocr', 'blur-file.png');
+  const buf = fs.readFileSync(selectedPath);
+  const pngBuf = await sharp(buf).png().toBuffer();
+  fs.mkdirSync(path.dirname(tempPath), { recursive: true });
+  fs.writeFileSync(tempPath, pngBuf);
+
+  // Get image dimensions for coordinate mapping
+  const meta = await sharp(tempPath).metadata();
+  const imgW = meta.width!;
+  const imgH = meta.height!;
+
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const cssW = primaryDisplay.bounds.width;
+  const cssH = primaryDisplay.bounds.height;
+
+  blurFileScaleX = imgW / cssW;
+  blurFileScaleY = imgH / cssH;
+  blurFilePath = tempPath;
+  blurFileMode = true;
+
+  mainWindow?.hide();
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  overlayWindow = createMultiRegionOverlay(tempPath, () => {}, () => {});
+  overlayWindow.on('closed', () => {
+    overlayWindow = null;
+    blurFileMode = false;
+    blurFilePath = null;
+    mainWindow?.show();
+  });
 });
 
 ipcMain.handle('save-snip', async (_event, base64: string) => {

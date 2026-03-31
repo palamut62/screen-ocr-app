@@ -335,7 +335,7 @@ select:focus-visible {
   font-family: 'Cascadia Code', 'Consolas', monospace;
 }
 
-.quick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.quick-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; }
 
 .action-quick { justify-content: flex-start; min-height: 40px; padding: 8px 10px; }
 .action-clipboard { justify-content: flex-start; min-height: 38px; padding: 8px 10px; }

@@ -73,37 +73,30 @@ export async function createBlurredCapture(region: {
   return createMultiRegionBlur([region]);
 }
 
-export async function createMultiRegionBlur(regions: Array<{
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}>): Promise<Buffer> {
-  if (!lastScreenshotPath || !fs.existsSync(lastScreenshotPath)) {
-    throw new Error('No screenshot available. Call captureScreen first.');
+export async function createMultiRegionBlur(
+  regions: Array<{ x: number; y: number; width: number; height: number }>,
+  sourcePath?: string,
+): Promise<Buffer> {
+  const src = sourcePath || lastScreenshotPath;
+  if (!src || !fs.existsSync(src)) {
+    throw new Error('No image source available.');
   }
 
-  const metadata = await sharp(lastScreenshotPath).metadata();
+  const metadata = await sharp(src).metadata();
   const imgW = metadata.width!;
   const imgH = metadata.height!;
 
-  // Create blurred full image
-  const blurred = await sharp(lastScreenshotPath)
-    .blur(20)
-    .png()
-    .toBuffer();
+  const blurred = await sharp(src).blur(20).png().toBuffer();
 
-  // Extract sharp (unblurred) regions from original and composite them all
   const composites: Array<{ input: Buffer; left: number; top: number }> = [];
   for (const region of regions) {
-    // Clamp region to image bounds
     const left = Math.max(0, Math.min(region.x, imgW - 1));
     const top = Math.max(0, Math.min(region.y, imgH - 1));
     const width = Math.min(region.width, imgW - left);
     const height = Math.min(region.height, imgH - top);
     if (width < 1 || height < 1) continue;
 
-    const sharpRegion = await sharp(lastScreenshotPath)
+    const sharpRegion = await sharp(src)
       .extract({ left, top, width, height })
       .png()
       .toBuffer();
@@ -111,12 +104,7 @@ export async function createMultiRegionBlur(regions: Array<{
     composites.push({ input: sharpRegion, left, top });
   }
 
-  // Composite: blurred background + all sharp regions on top
-  const result = await sharp(blurred)
-    .composite(composites)
-    .png()
-    .toBuffer();
-
+  const result = await sharp(blurred).composite(composites).png().toBuffer();
   return result;
 }
 
