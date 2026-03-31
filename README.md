@@ -1,71 +1,63 @@
 # Screen OCR
 
-> AI destekli ekran metni çıkarma ve gelişmiş resim düzenleme aracı — Linux & Windows
+> AI-powered screen text extraction and advanced image editing tool — Linux & Windows
 
 ![Screen OCR Preview](screenshots/app-preview.png)
 
 ---
 
-## Özellikler
+## Features
 
-### 📝 OCR & Metin Çıkarma
-- **Alan Seç** — Ekranın herhangi bir bölgesini seçerek AI ile metin çıkar (`Ctrl+Shift+X`)
-- **Panodan Tara** — Panodaki resimden doğrudan metin çıkar
-- **AI Metin Düzeltme** — OCR hatalarını ikincil bir AI modeliyle otomatik düzelt
-- **Model Seçimi** — OpenRouter üzerinden ücretsiz ve ücretli onlarca vision modeli
+### 📝 OCR & Text Extraction
+- **Select Area** — Capture any screen region and extract text using AI (`Ctrl+Shift+X`)
+- **Clipboard Scan** — Extract text directly from images in your clipboard
+- **AI Text Correction** — Automatically fix OCR character errors using a secondary AI model
+- **Model Selection** — Dozens of free and paid vision models via OpenRouter
 
-### 🎨 Resim Editörü (Paint Ribbon Arayüz)
-- **Paint Tarzı Ribbon** — Titlebar altında MS Paint benzeri gruplu araç çubuğu
-- **Dosya Aç** — PNG, JPG, WebP, BMP, GIF, TIFF formatlarını editörde aç
-- **Web'den Resim** — URL girerek internetten resim yükle
-- **Serbest Çizim** — Catmull-Rom spline ile düzgünleştirilmiş kalem darbeleri
-- **İşaretleyici** — Şeffaf renkli marker
-- **Solma Kalemi** — 3 saniyede otomatik solan çizgiler
-- **Lazer İşaretçi** — Kırmızı parlayan laser pointer izi
-- **Şekiller** — Dikdörtgen, oval, ok, çizgi
-- **Metin** — Çok satırlı metin; kalın, italik, arka plan seçeneği
-- **Silgi** — Annotation'ları temizle
-- **Renk Paleti** — 8 hazır renk + Gökkuşağı modu
-- **Farklı Kaydet** — PNG (kayıpsız), JPG veya WebP (kalite slider ile)
-- **Geri Al / İleri Al** — Tam geçmiş yönetimi (Ctrl+Z / Ctrl+Y)
-- **Editör en önde** — Ekran alıntısı sonrası editör her zaman en üstte açılır
+### 🎨 Image Editor (Paint Ribbon UI)
+- **Paint-style Ribbon** — MS Paint-like grouped toolbar below the titlebar
+- **Open File** — Load PNG, JPG, WebP, BMP, GIF, TIFF files into the editor
+- **Open from Web** — Load any image by URL
+- **Freehand Drawing** — Smooth pen strokes with Catmull-Rom spline interpolation
+- **Highlighter** — Semi-transparent colored marker
+- **Fade Pen** — Strokes that automatically fade out in 3 seconds
+- **Laser Pointer** — Glowing red laser pointer trail
+- **Shapes** — Rectangle, oval, arrow, line
+- **Text** — Multi-line text with bold, italic, and background options
+- **Eraser** — Remove annotations precisely
+- **Color Palette** — 8 preset colors + Rainbow mode
+- **Save As** — Export as PNG (lossless), JPG or WebP (with quality slider)
+- **Undo / Redo** — Full history management (Ctrl+Z / Ctrl+Y)
+- **Always on Top** — Editor window always opens above other windows after a snip
 
-### 🌫️ Blur (Odak Yakalama)
-- **Ekran Blurlama** — Seçilen bölgeler keskin kalır, geri kalan alan bulanıklaşır
-- **Resimden Blur** — Bilgisayarınızdaki herhangi bir resim dosyasını açıp blur uygulayın
-- **Çoklu Bölge** — Birden fazla keskin bölge tanımla
-- **Gizlilik Koruması** — Hassas içerikleri hızlıca gizle
+### 🌫️ Blur (Focus Capture)
+- **Screen Blur** — Keep selected regions sharp, blur everything else
+- **Blur from File** — Open any local image file and apply selective blur
+- **Multi-region** — Define multiple sharp focus areas at once
+- **Privacy Protection** — Quickly redact sensitive content
 
-### ⚙️ Genel
-- **Çoklu Dil** — Türkçe ve İngilizce arayüz
-- **Açık / Koyu Tema** — Tek tıkla tema değiştir
-- **Global Kısayol** — `Ctrl+Shift+X` ile anında yakalama
-- **Sistem Tepsisi** — Arka planda sessizce çalışır
-- **Otomatik Başlatma** — Sistem açılışında otomatik başlat
-
----
-
-## Ekran Görüntüleri
-
-| Ana Ekran | Editör |
-|-----------|--------|
-| ![Ana Ekran](screenshots/main-dark.png) | ![Editör](screenshots/editor-toolbar.png) |
+### ⚙️ General
+- **Multi-language UI** — Turkish and English
+- **Light / Dark Theme** — Toggle instantly
+- **Global Hotkey** — `Ctrl+Shift+X` from anywhere
+- **System Tray** — Runs quietly in the background
+- **Auto-launch** — Start automatically on system boot
 
 ---
 
-## İndirme
+## Download
 
-En son sürümü [Releases](https://github.com/palamut62/screen-ocr-app/releases) sayfasından indirin.
+Download the latest release from the [Releases](https://github.com/palamut62/screen-ocr-app/releases) page.
 
-| Platform | Dosya |
-|----------|-------|
+| Platform | File |
+|----------|------|
 | Linux (Debian/Ubuntu) | `screen-ocr-app_x.x.x_amd64.deb` |
-| Linux (Diğer) | `Screen OCR-x.x.x.AppImage` |
+| Linux (Other) | `Screen OCR-x.x.x.AppImage` |
 | Windows | `Screen OCR Setup x.x.x.exe` |
 
 ---
 
-## Kurulum
+## Installation
 
 ### Linux — .deb (Debian/Ubuntu)
 ```bash
@@ -78,84 +70,83 @@ chmod +x "Screen OCR-1.5.0.AppImage"
 ./"Screen OCR-1.5.0.AppImage"
 ```
 
-### Başlarken
-1. Uygulamayı başlat
-2. **Ayarlar**'ı aç ve [OpenRouter](https://openrouter.ai/) API anahtarını gir
-3. **Modelleri Getir**'e tıkla ve bir OCR vision modeli seç (ücretsiz modeller mevcut)
-4. İsteğe bağlı olarak AI metin düzeltmeyi etkinleştir
-5. **Metin Seç**'e tıkla veya `Ctrl+Shift+X` kısayolunu kullan
+### Getting Started
+1. Launch Screen OCR
+2. Open **Settings** and enter your [OpenRouter](https://openrouter.ai/) API key
+3. Click **Fetch Models** and select an OCR vision model (free models available)
+4. Optionally enable AI text correction and pick a correction model
+5. Click **Select Text** or press `Ctrl+Shift+X` to capture and extract text
 
 ---
 
-## Editör Araçları
+## Editor Shortcuts
 
-| Araç | Kısayol | Açıklama |
-|------|---------|----------|
-| Seç | `1` | Figure seç, taşı |
-| Kalem | `2` | Serbest çizim |
-| İşaretleyici | `3` | Şeffaf marker |
-| Solma Kalemi | `4` | Otomatik solan çizgi |
-| Lazer | `5` | Lazer işaretçi izi |
-| Ok | `6` | Ok şekli |
-| Çizgi | `7` | Düz çizgi |
-| Dikdörtgen | `8` | Dikdörtgen |
-| Oval | `9` | Elips |
-| Metin | `0` | Metin ekle |
-| Silgi | — | Annotation sil |
-| Geri Al | `Ctrl+Z` | Son işlemi geri al |
-| İleri Al | `Ctrl+Y` | Geri alınanı yinele |
-| Çoğalt | `Ctrl+D` | Seçili figürü kopyala |
-| Sil | `Delete` | Seçili figürü sil |
-| Kaydır | `←↑→↓` | Seçiliyi 1px taşı (Shift: 10px) |
-
----
-
-## Teknoloji Yığını
-
-- **Electron** — Masaüstü uygulama çatısı
-- **React + TypeScript** — UI bileşenleri
-- **Vite** — Hızlı build aracı
-- **Sharp** — Görüntü işleme (blur, kırpma, format dönüşümü)
-- **OpenRouter API** — AI vision ve metin modeli erişimi
+| Tool | Key | Description |
+|------|-----|-------------|
+| Select | `1` | Select and move figures |
+| Pen | `2` | Freehand drawing |
+| Highlighter | `3` | Semi-transparent marker |
+| Fade Pen | `4` | Auto-fading strokes |
+| Laser | `5` | Laser pointer trail |
+| Arrow | `6` | Arrow shape |
+| Line | `7` | Straight line |
+| Rectangle | `8` | Rectangle outline |
+| Oval | `9` | Ellipse outline |
+| Text | `0` | Add text |
+| Undo | `Ctrl+Z` | Undo last action |
+| Redo | `Ctrl+Y` | Redo undone action |
+| Duplicate | `Ctrl+D` | Duplicate selected figure |
+| Delete | `Delete` | Remove selected figure |
+| Nudge | `←↑→↓` | Move 1px (Shift: 10px) |
 
 ---
 
-## Geliştirme
+## Tech Stack
+
+- **Electron** — Desktop application framework
+- **React + TypeScript** — UI components
+- **Vite** — Fast build tooling
+- **Sharp** — Image processing (blur, crop, format conversion)
+- **OpenRouter API** — AI vision and text model access
+
+---
+
+## Development
 
 ```bash
-# Bağımlılıkları yükle
+# Install dependencies
 npm install
 
-# Geliştirme modunda çalıştır
+# Run in development mode
 npm run dev
 
-# Üretim build
+# Production build
 npm run build
 
-# Linux installer oluştur
+# Build Linux installer
 npm run dist:linux
 
-# Windows installer oluştur
+# Build Windows installer
 npm run dist
 ```
 
-### Gereksinimler
+### Requirements
 - Node.js 18+
-- Linux x64 veya Windows 10/11 x64
+- Linux x64 or Windows 10/11 x64
 
 ---
 
-## Sürüm Geçmişi
+## Changelog
 
-| Sürüm | Öne Çıkan |
-|-------|-----------|
-| **v1.5.0** | Resimden blur özelliği |
-| **v1.4.0** | Paint ribbon editör, web'den resim, çok formatlı kayıt |
-| **v1.3.1** | Multi-region blur, ekran görüntüleri |
-| **v1.3.0** | DrawPen düzenleme özellikleri |
+| Version | Highlights |
+|---------|-----------|
+| **v1.5.0** | Blur from file feature |
+| **v1.4.0** | Paint ribbon editor, open from web, multi-format save |
+| **v1.3.1** | Multi-region blur, screenshots |
+| **v1.3.0** | DrawPen editing features |
 
 ---
 
-## Lisans
+## License
 
 MIT
